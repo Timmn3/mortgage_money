@@ -1,16 +1,12 @@
 import datetime
-
 from gino import Gino
 from aiogram import Dispatcher
-
 import sqlalchemy as sa
 from typing import List
-
-from sqlalchemy import Column, BigInteger, String
-
 from data import config
 
 db = Gino()
+
 
 class BaseModel(db.Model):
     __abstract__ = True
@@ -36,6 +32,7 @@ class TimedBaseModel(BaseModel):
         default=datetime.datetime.utcnow,
         onupdate=datetime.datetime.utcnow,
         server_default=db.func.now())
+
 
 # Установка связи с PostgreSQL
 async def on_startup(dispatcher: Dispatcher):

@@ -1,6 +1,6 @@
 from loader import scheduler
-from scheduler.by_time import schedule_jobs, schedule_balance
-from utils.db_api.start_stop_commands import add_start_stop
+from scheduler.by_time import schedule_jobs
+from utils.db_api.admin_commands import is_data, fill_the_table_admin
 
 
 async def on_startup(dpr):
@@ -9,7 +9,7 @@ async def on_startup(dpr):
 
     from loader import db
     from utils.db_api.db_gino import on_startup
-    # print('Подключение к PostgreSQL')
+    # print('Подключение к PostgresQL')
     await on_startup(db)
 
     # print('Удаление базы данных')
@@ -27,22 +27,16 @@ async def on_startup(dpr):
     from bot_send.set_bot_commands import set_default_commands
     await set_default_commands(dpr)
 
-    # парсим
-    # from parser.parse_last import parse_last  # последнийй тираж
-    # await parse_last()
-
-    # from parser.parse_all import add_in_bd_all  # все тиражи
-    # from parser.parse_all import parse_all
-    # await add_in_bd_all(parse_all())
-
-    # print('\n Парсим 50 последних тиражей...')
-    # print('')
-    # print('Закончили парсить: Ok - добавлено, N - не добавлено\n')
-
-    # запускаем парсинг по времени
+    # запускаем сообщения по времени
     await schedule_jobs()
-    # отправка сообщения о балансе ниже 100 р
-    schedule_balance()
+
+    # заполняем БД
+    try:
+        if not await is_data():
+            # заполняем БД админа пустыми значениями
+            await fill_the_table_admin()
+    except Exception as e:
+        logger.error(e)
 
 
 if __name__ == '__main__':
@@ -51,5 +45,3 @@ if __name__ == '__main__':
 
     scheduler.start()
     executor.start_polling(dp, on_startup=on_startup)
-
-

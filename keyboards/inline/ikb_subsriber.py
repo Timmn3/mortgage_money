@@ -1,11 +1,19 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from data.config import url_chat
+from utils.db_api.admin_commands import get_channel_list
 
-ikb_subsriber = InlineKeyboardMarkup(row_width=1,
-                                          inline_keyboard=[
-                                              [
-                                                  InlineKeyboardButton(text='Телеграм канал',
-                                                                       url=url_chat)
-                                              ]
-                                          ])
+
+async def generate_subscription_keyboard():
+    channels = await get_channel_list()
+
+    # Создайте список списков, где каждый внутренний список содержит одну кнопку.
+    keyboard_buttons = [
+        [InlineKeyboardButton(text=f'Telegram Channel: {channel}', url=channel)]
+        for channel in channels
+    ]
+
+    # Создайте InlineKeyboardMarkup с одной кнопкой в каждой строке.
+    subscription_keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+
+    return subscription_keyboard
+

@@ -2,7 +2,7 @@
 from .bot_start import dp
 from .help import dp
 from .menu import dp
-from .admin_menu import dp
+from handlers.admin.admin_menu import dp
 from .bot_referrals import dp
 from .balance import dp
 

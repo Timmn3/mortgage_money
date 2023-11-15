@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.utils.deep_linking import get_start_link
 
 from loader import dp
-from utils.db_api import user_commands as commands
+from utils.db_api import users_commands as commands
 
 
 @dp.message_handler(text="/ref")  # создаем хэндлер
