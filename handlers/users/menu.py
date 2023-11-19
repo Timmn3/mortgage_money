@@ -1,7 +1,5 @@
 from aiogram import types
-from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Command
-from filters.subscription import IsSubscriber
 from keyboards.inline import ikb_menu
 from loader import dp
 

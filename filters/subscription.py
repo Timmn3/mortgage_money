@@ -10,8 +10,8 @@ from loader import bot
 class IsSubscriber(BoundFilter):  # проверка подписки
     async def check(self, message: types.Message):
         chat_ids = await get_chat_ids_list()
-
-        for chat_id in chat_ids:
+        chat_dict = chat_ids.split(",")
+        for chat_id in chat_dict:
             sub = await bot.get_chat_member(chat_id=int(chat_id), user_id=message.from_user.id)
             if sub.status != types.ChatMemberStatus.LEFT:  # если пользователь не вышел
                 return True

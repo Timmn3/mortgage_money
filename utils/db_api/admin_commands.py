@@ -7,7 +7,7 @@ from utils.db_api.shemas.admin import AdminBD
 async def add_admin(greeting_text: str, greeting_video: str, greeting_photo: str,
                     channel_list: str, chat_ids_list: str, documents_id: str, technical_support: str, tariff: int,
                     set_bonus_1: int, set_bonus_2: int, variants_proposal: str,
-                    variants_reason_rejection: str, newsletter_text: str,
+                    newsletter_text: str,
                     newsletter_period: int, newsletter_whom: str):
     try:
         admin_data = AdminBD(
@@ -22,7 +22,6 @@ async def add_admin(greeting_text: str, greeting_video: str, greeting_photo: str
             set_bonus_1=set_bonus_1,
             set_bonus_2=set_bonus_2,
             variants_proposal=variants_proposal,
-            variants_reason_rejection=variants_reason_rejection,
             newsletter_text=newsletter_text,
             newsletter_period=newsletter_period,
             newsletter_whom=newsletter_whom
@@ -189,17 +188,16 @@ async def set_variants_proposal(new_variants: list):
 
 async def fill_the_table_admin():
     await add_admin(greeting_text='Добро пожаловать! Этот бот поможет Вам создать заявку по ипотеке',
-                    greeting_video='BAACAgIAAxkBAAIDfmVQzTOb1Ae0ru6OoK09nCgoRPj1AAI_DwACqDDpSq7YKK3qp82rMwQ',
-                    greeting_photo='AgACAgIAAxkBAAIDjGVQzgT-73donkI3JgABGT9BJVDw_QACM9IxG4pTgUp7Oe7H1KeRAwEAAwIAA3kAAzME',
-                    channel_list='https://t.me/Voice_to_fake_voice, https://t.me/stoloto4x20',
-                    chat_ids_list='-1001852158361, -1001878077008',
-                    documents_id='https://telegra.ph/Bot-zayavki-TZ-11-07',
-                    technical_support='@Stoloto_support',
+                    greeting_video='',
+                    greeting_photo='AgACAgIAAxkBAAID22VZLU14BKb9qHlmWyCAs7mwcoQyAAI40TEbbHbJSmDPI1c-d13DAQADAgADeQADMwQ',
+                    channel_list='https://t.me/teamcapital_channel',
+                    chat_ids_list='-1002111771031',
+                    documents_id='https://t.me/TeamCapital_bot/oferta',
+                    technical_support='WinnRusso',
                     tariff=0,
                     set_bonus_1=0,
                     set_bonus_2=0,
                     variants_proposal='ипотека, автокредит',
-                    variants_reason_rejection='недостаточно данных для одобрения кредита, плохая кредитная история',
                     newsletter_text='',
                     newsletter_period=0,
                     newsletter_whom='')

@@ -8,7 +8,7 @@ async def generate_subscription_keyboard():
 
     # Создайте список списков, где каждый внутренний список содержит одну кнопку.
     keyboard_buttons = [
-        [InlineKeyboardButton(text=f'Telegram Channel: {channel}', url=channel)]
+        [InlineKeyboardButton(text=f'Подписаться на канал', url=channel)]
         for channel in channels
     ]
 
@@ -16,4 +16,5 @@ async def generate_subscription_keyboard():
     subscription_keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
 
     return subscription_keyboard
+
 

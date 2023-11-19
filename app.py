@@ -20,15 +20,12 @@ async def on_startup(dpr):
     logger.info('Бот запущен')
 
     # импортирует функцию, которая отправляет сообщение о запуске бота всем администраторам
-    from bot_send.notify_admins import on_startup_notufy
-    await on_startup_notufy(dpr)
+    from bot_send.notify_admins import on_startup_notify
+    await on_startup_notify(dpr)
 
     # импортирует функцию, которая устанавливает команды бота
     from bot_send.set_bot_commands import set_default_commands
     await set_default_commands(dpr)
-
-    # запускаем сообщения по времени
-    await schedule_jobs()
 
     # заполняем БД
     try:
@@ -37,6 +34,9 @@ async def on_startup(dpr):
             await fill_the_table_admin()
     except Exception as e:
         logger.error(e)
+
+    # запускаем сообщения по времени
+    await schedule_jobs()
 
 
 if __name__ == '__main__':

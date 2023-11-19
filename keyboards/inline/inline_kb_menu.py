@@ -8,7 +8,9 @@ ikb_menu = InlineKeyboardMarkup(row_width=2,
                                     ],
                                     [
                                         InlineKeyboardButton(text="Личный кабинет",
-                                                             callback_data='Личный кабинет')
+                                                             callback_data='Личный кабинет'),
+                                        InlineKeyboardButton(text="Мой договор",
+                                                             callback_data='Мой договор'),
                                     ],
                                     [
                                         InlineKeyboardButton(text="Вывод средств", callback_data='Вывод средств')

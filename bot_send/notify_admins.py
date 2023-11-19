@@ -6,7 +6,7 @@ from data.config import admins
 from utils.db_api.users_commands import count_users
 
 
-async def on_startup_notufy(dp: Dispatcher):
+async def on_startup_notify(dp: Dispatcher):
     for admin in admins:
         try:
             text = 'Бот запущен'

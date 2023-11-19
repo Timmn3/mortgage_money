@@ -102,6 +102,7 @@ async def get_proposal_data(user_id: int) -> dict:
     if proposal:
         # Extract specific fields from the proposal
         proposal_data = {
+            'id': proposal.id,
             'variant_proposal': proposal.variant_proposal,
             'fio': proposal.fio,
             'photo_passport_1': proposal.photo_passport_1,
@@ -113,3 +114,25 @@ async def get_proposal_data(user_id: int) -> dict:
         return proposal_data
     else:
         return None
+
+
+async def update_status_by_id(proposal_id: int, new_status: str):
+    """Обновите поле status_proposal для предложения с заданным идентификатором."""
+    proposal = await Proposal.query.where(Proposal.id == proposal_id).gino.first()
+
+    if proposal:
+        await proposal.update(status_proposal=new_status).apply()
+    else:
+        logger.warning(f'Proposal with id {proposal_id} not found or does not exist')
+
+
+async def get_proposals_by_status(target_status: str) -> List[Proposal]:
+    """Получить все предложения с определенным статусом_предложение."""
+    proposals = await Proposal.query.where(Proposal.status_proposal == target_status).gino.all()
+    return proposals
+
+
+async def get_all_proposals() -> List[Proposal]:
+    """Получить все предложения."""
+    proposals = await Proposal.query.gino.all()
+    return proposals

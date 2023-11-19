@@ -17,7 +17,6 @@ class AdminBD(BaseModel):
     set_bonus_1 = Column(Integer)  # установить бонус 1
     set_bonus_2 = Column(Integer)  # установить бонус 2
     variants_proposal = Column(String(500))  # варианты заявок
-    variants_reason_rejection = Column(String(500))  # варианты причин отклонения
     newsletter_text = Column(String(500))  # текст рассылки
     newsletter_period = Column(Integer)  # период рассылки
     newsletter_whom = Column(String(500))  # кому отправлять

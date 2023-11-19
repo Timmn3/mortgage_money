@@ -15,7 +15,7 @@ class Users(TimedBaseModel):
     timezone = Column(Integer)  # часовой пояс
     telephone = Column(BigInteger)  # номер телефона
     referral_id = Column(String(100))  # реферальная ссылка
-    my_referrals = Column(String(300))  # список пользователей зарегистрированных по реферальной ссылке
+    my_referrals = Column(String(10000))  # список пользователей зарегистрированных по реферальной ссылке
     bonus_1 = Column(Integer)
     bonus_2 = Column(Integer)
     money = Column(BigInteger)  # сумма денег
@@ -24,3 +24,4 @@ class Users(TimedBaseModel):
     status = Column(String(50))
 
     query: sql.select
+

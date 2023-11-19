@@ -1,3 +1,6 @@
+from aiogram.utils.deep_linking import get_start_link
+
+from keyboards.inline.contract import ikb_contracts
 from loader import dp
 from aiogram import types
 from aiogram.dispatcher import FSMContext
@@ -23,38 +26,55 @@ class ApplyNow(StatesGroup):
     photo_from_2_credit_history_site = State()  # фото с другого сайта кредитных историй
 
 
+# @dp.callback_query_handler(text='Подать заявку')
+# async def accept_reg(call: types.CallbackQuery):
+#     # получаем список заявок
+#     variants_proposals = await get_variants_proposal()
+#     # Создаем кнопки на основе полученных вариантов заявок
+#     keyboard_proposal = ReplyKeyboardMarkup(resize_keyboard=True)
+#     keyboard_proposal.add(*[KeyboardButton(text=variant) for variant in variants_proposals])
+#     await call.message.answer('Выберите вариант заявки:', reply_markup=keyboard_proposal)
+#     await ApplyNow.variant_proposal.set()
+#
+#
+# @dp.message_handler(state=ApplyNow.variant_proposal)
+# async def process_variant_proposal(message: types.Message, state: FSMContext):
+#     selected_variant = message.text
+#     await state.update_data(variant_proposal=selected_variant)
+#     # await message.delete()
+#     await message.answer('Заполните заявку, ответив на вопросы, представленные ниже, если Вы хотите '
+#                          'прекратить заполнение, напишите слово "отмена"')
+#     await message.answer(f'Введите Фамилию, Имя и Отчество:')
+#
+#     await ApplyNow.fio.set()
+
+
+keyboard_cancel = ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_cancel.add(KeyboardButton('Отмена'))
+
+
 @dp.callback_query_handler(text='Подать заявку')
 async def accept_reg(call: types.CallbackQuery):
-    # получаем список заявок
-    variants_proposals = await get_variants_proposal()
-    # Создаем кнопки на основе полученных вариантов заявок
-    keyboard_proposal = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard_proposal.add(*[KeyboardButton(text=variant) for variant in variants_proposals])
-    await call.message.answer('Выберите вариант заявки:', reply_markup=keyboard_proposal)
-    await ApplyNow.variant_proposal.set()
-
-
-@dp.message_handler(state=ApplyNow.variant_proposal)
-async def process_variant_proposal(message: types.Message, state: FSMContext):
-    selected_variant = message.text
-    await state.update_data(variant_proposal=selected_variant)
-    # await message.delete()
-    await message.answer('Заполните заявку, ответив на вопросы, представленные ниже, если Вы хотите '
-                         'прекратить заполнение, напишите слово "отмена"')
-    await message.answer(f'Введите Фамилию, Имя и Отчество:')
+    await call.message.edit_reply_markup()
+    await call.message.answer('Заполните заявку, ответив на вопросы, представленные ниже, '
+                              'или нажмите "отмена"')
+    await call.message.answer(f'Введите Фамилию, Имя и Отчество:', reply_markup=keyboard_cancel)
 
     await ApplyNow.fio.set()
 
 
 @dp.message_handler(state=ApplyNow.fio)
 async def process_fio(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    selected_variant = ''
+    await state.update_data(variant_proposal=selected_variant)
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         # сохраняем фамилию, имя, отчество в состояние
         await state.update_data(fio=message.text)
-        await message.answer('Введите город:')
+        await message.answer('Введите город:', reply_markup=keyboard_cancel)
         await ApplyNow.city.set()
 
 
@@ -62,14 +82,18 @@ keyboard = ReplyKeyboardMarkup(
     keyboard=[
         [
             KeyboardButton(text='Поделиться номером телефона', request_contact=True)
-        ]
+        ],
+        [
+            KeyboardButton(text='Отмена')
+        ],
     ], resize_keyboard=True)
 
 
 @dp.message_handler(state=ApplyNow.city)
 async def process_city(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         # сохраняем город в состояние
@@ -80,65 +104,70 @@ async def process_city(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=ApplyNow.phone, content_types=[types.ContentType.CONTACT, types.ContentType.TEXT])
 async def process_phone_text(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         try:
             contact = message.contact.phone_number
             await state.update_data(phone=contact)
-            await message.answer('Пришлите фото 1 страницы паспорта:', reply_markup=ReplyKeyboardRemove())
+            await message.answer('Пришлите фото 1 страницы паспорта:', reply_markup=keyboard_cancel)
             await ApplyNow.photo_passport_1.set()
         except Exception as e:
-            await message.answer('Отправьте свой номер телефона')
+            await message.answer('Отправьте свой номер телефона', reply_markup=keyboard_cancel)
             logger.error(e)
 
 
 @dp.message_handler(state=ApplyNow.photo_passport_1, content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_passport_1(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type == "photo":
             # сохраняем фото 1 страницы паспорта в состояние
             photo_passport_1 = message.photo[-1].file_id
             await state.update_data(photo_passport_1=photo_passport_1)
-            await message.answer('Пришлите фото 2 страницы паспорта:')
+            await message.answer('Пришлите фото 2 страницы паспорта:', reply_markup=keyboard_cancel)
             await ApplyNow.photo_passport_2.set()
         else:
-            await message.answer('Ошибка ввода! Пришлите фотографию:')
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
 
 
 @dp.message_handler(state=ApplyNow.photo_passport_2, content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_passport_2(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:')
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
         else:
             # сохраняем фото 2 страницы паспорта в состояние
             photo_passport_2 = message.photo[-1].file_id
             await state.update_data(photo_passport_2=photo_passport_2)
-            await message.answer('Пришлите фото СНИЛС или фото водительских прав:')
+            await message.answer('Пришлите фото СНИЛС или фото водительских прав:', reply_markup=keyboard_cancel)
             await ApplyNow.photo_snils.set()
 
 
 @dp.message_handler(state=ApplyNow.photo_snils, content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_snils(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:')
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
         else:
             # сохраняем фото СНИЛС или фото водительских прав в состояние
             photo_snils = message.photo[-1].file_id
             await state.update_data(photo_snils=photo_snils)
-            await message.answer('Пришлите несколько фотографий (по одной) с сайта кредитных историй:')
+            await message.answer('Пришлите несколько фотографий (по одной) с сайта кредитных историй:'
+                                 , reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_1_credit_history_site.set()
 
 
@@ -148,12 +177,13 @@ all_photos_1 = []
 @dp.message_handler(state=ApplyNow.photo_from_1_credit_history_site,
                     content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_credit_history_1(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:')
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
         else:
             try:
                 photo_credit_history_1 = message.photo[-1].file_id
@@ -179,7 +209,8 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
     await call.message.delete()  # удаляем сообщение
     try:
         await state.update_data(photo_from_1_credit_history_site=all_photos_1)
-        await call.message.answer('Теперь пришлите еще фотографии (по одной) с другого сайта кредитных историй:')
+        await call.message.answer('Теперь пришлите еще фотографии (по одной) с другого сайта кредитных историй:',
+                                  reply_markup=keyboard_cancel)
         await ApplyNow.photo_from_2_credit_history_site.set()
     except Exception as e:
         logger.error(e)
@@ -191,12 +222,13 @@ all_photos_2 = []
 @dp.message_handler(state=ApplyNow.photo_from_2_credit_history_site,
                     content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_credit_history_2(message: types.Message, state: FSMContext):
-    if message.text.lower() == 'отмена':
-        await message.answer('Отменено')
+    text = str(message.text)
+    if text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:')
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
         else:
             try:
                 # сохраняем фото с другого сайта кредитных историй в состояние
@@ -204,14 +236,14 @@ async def process_photo_credit_history_2(message: types.Message, state: FSMConte
                 # Добавляем фото в список
                 all_photos_2.append(photo_credit_history_2)
 
-                keyboard = types.InlineKeyboardMarkup()
-                keyboard.add(types.InlineKeyboardButton(text='Продолжить заполнять заявку',
-                                                        callback_data='continue_application_2'))
+                keyboard_continue = types.InlineKeyboardMarkup()
+                keyboard_continue.add(types.InlineKeyboardButton(text='Продолжить заполнять заявку',
+                                                                 callback_data='continue_application_2'))
 
                 # Отправляем сообщение с кнопками
                 await message.answer(
                     'Загрузите еще фото или нажмите "Продолжить заполнение заявки"!',
-                    reply_markup=keyboard
+                    reply_markup=keyboard_continue
                 )
             except Exception as e:
                 logger.error(e)
@@ -247,6 +279,7 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
                            photo_from_1_credit_history_site=photo_from_1_credit_history_site_str,
                            photo_from_2_credit_history_site=photo_from_2_credit_history_site_str)
 
+        await call.message.answer('Данные успешно загружены!', reply_markup=ReplyKeyboardRemove())
         await call.message.answer('Выберите действие:', reply_markup=keyboard_send)
 
     except Exception as e:
@@ -255,6 +288,7 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
 
 async def merge_proposals(proposal, proposal_2):
     data = {
+        'id': proposal['id'],
         'variant_proposal': proposal['variant_proposal'],
         'fio': proposal['fio'],
         'city': proposal_2['city'],
@@ -275,5 +309,16 @@ async def submit_application(call: types.CallbackQuery, state: FSMContext):
     proposal_2 = await get_user_city_and_telephone(call.from_user.id)
     data = await merge_proposals(proposal, proposal_2)
     await create_excel_file(call.from_user.id, data)
-    await call.message.answer('Спасибо за предоставленные данные. Ваша заявка принята!')
+    await call.message.answer('Спасибо за предоставленные данные. Ваша заявка принята!\n\n'
+                              'Для начала работы по вашей заявке необходимо заключить договор.\n'
+                              'Это обеспечит Вам гарантии исполнения договора и обоснование для вашего '
+                              'обслуживания.\n\n'
+                              '1. Распечатать договор\n'
+                              '2. Подписать\n'
+                              '3. Отправить фото или скан в этого бота в разделе МОЙ ДОГОВОР \n'
+                              '\n меню пользователя /menu ')
+    ref_link = await get_start_link(payload=call.from_user.id)
+    await call.message.answer(f'Примите участие в партнерской программе:\n'
+                              f'Приглашайте пользователей по своей реферальной ссылке: {ref_link}'
+                              f'и получите бонусы', reply_markup=ikb_contracts)
     await state.finish()

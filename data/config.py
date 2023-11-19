@@ -9,10 +9,10 @@ load_dotenv()
 BOT_TOKEN = str(os.getenv('BOT_TOKEN'))
 
 # список администраторов бота
-admins = [1089138631]
-
+admins = [1089138631, 6075652143]
+chat_ids = [-1001878077008]
 # user для обращения пользователей
-help_user = '@Stoloto_support'
+help_user = '@WinnRusso'
 
 ip = os.getenv('IP')
 PG_USER = str(os.getenv('PG_USER'))
