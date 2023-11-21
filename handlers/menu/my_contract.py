@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.deep_linking import get_start_link
 
+from filters.subscription import subscriber
 from keyboards.inline import ikb_contracts
 from loader import dp
 from aiogram import types
@@ -21,13 +22,15 @@ class Contract(StatesGroup):
 
 @dp.callback_query_handler(text='Мой договор')
 async def accept_reg(call: types.CallbackQuery):
-    await call.message.answer("Выберите действие:", reply_markup=keyboard_contract)
+    if await subscriber(call.from_user.id):
+        await call.message.answer("Выберите действие:", reply_markup=keyboard_contract)
 
 
 @dp.callback_query_handler(text='Оправить договор')
 async def accept_reg(call: types.CallbackQuery):
-    await call.message.answer("Отправьте мне подписанный договор:")
-    await Contract.send.set()
+    if await subscriber(call.from_user.id):
+        await call.message.answer("Отправьте мне подписанный договор:")
+        await Contract.send.set()
 
 
 @dp.message_handler(state=Contract.send, content_types=types.ContentType.DOCUMENT)
@@ -55,31 +58,32 @@ async def input_document(message: types.Message, state: FSMContext):
 
 @dp.callback_query_handler(text='Скачать свой договор')
 async def download_contract(call: types.CallbackQuery):
-    user_id = call.from_user.id
-    file_name = f"Договор_{user_id}"
+    if await subscriber(call.from_user.id):
+        user_id = call.from_user.id
+        file_name = f"Договор_{user_id}"
 
-    # Формируем путь к файлу
-    file_path = os.path.join("contracts", file_name)
+        # Формируем путь к файлу
+        file_path = os.path.join("contracts", file_name)
 
-    try:
-        # Получаем список файлов в папке
-        files_in_directory = os.listdir("contracts")
+        try:
+            # Получаем список файлов в папке
+            files_in_directory = os.listdir("contracts")
 
-        # Ищем файл с нужным префиксом (без учета расширения)
-        matching_files = [file for file in files_in_directory if file.startswith(file_name)]
+            # Ищем файл с нужным префиксом (без учета расширения)
+            matching_files = [file for file in files_in_directory if file.startswith(file_name)]
 
-        # Берем первый найденный файл
-        if matching_files:
-            full_file_name = matching_files[0]
-            full_file_path = os.path.join("contracts", full_file_name)
+            # Берем первый найденный файл
+            if matching_files:
+                full_file_name = matching_files[0]
+                full_file_path = os.path.join("contracts", full_file_name)
 
-            # Отправляем файл пользователю
-            await call.message.answer_document(InputFile(full_file_path))
-        else:
-            # Если файл не найден, отправляем соответствующее сообщение
-            await call.message.answer("Файл не найден.")
-    except Exception as e:
-        # Обрабатываем случай, если файл не может быть отправлен
-        await call.message.answer(f"Не удалось отправить договор. Пожалуйста, попробуйте позже")
-        logger.error(e)
+                # Отправляем файл пользователю
+                await call.message.answer_document(InputFile(full_file_path))
+            else:
+                # Если файл не найден, отправляем соответствующее сообщение
+                await call.message.answer("Файл не найден.")
+        except Exception as e:
+            # Обрабатываем случай, если файл не может быть отправлен
+            await call.message.answer(f"Не удалось отправить договор. Пожалуйста, попробуйте позже")
+            logger.error(e)
 

@@ -1,9 +1,11 @@
-from filters import AdminsMessage
+from filters import AdminsMessage, IsSubscriber
 from handlers.users.levels import set_levels
 from loader import dp
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Command
+
+from misc.save_excel import create_excel_file
 from utils.db_api import users_commands as commands
 from asyncio import sleep
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -18,7 +20,7 @@ from utils.db_api.admin_commands import get_newsletter_text, replace_newsletter_
     set_variants_proposal
 from utils.db_api.proposal_commands import update_status_by_id, get_proposals_by_status, get_all_proposals
 from utils.db_api.users_commands import change_user_role, select_all_users_with_data, get_user_referrals, \
-    find_user_by_referral_value, count_users
+    find_user_by_referral_value, count_users, save_count_levels
 
 
 class SendMessage(StatesGroup):
@@ -36,11 +38,11 @@ class SendMessage(StatesGroup):
     status = State()
 
 
-@dp.message_handler(text="/test")
+@dp.message_handler(IsSubscriber(), text="/test")
 async def command_help(message: types.Message):
-    pass
-    # await message.answer(f'Тест ')
-    # await set_levels('5669831953')
+    await message.answer(f'Тест ')
+    await create_excel_file(1089138631)
+
 
 
 @dp.message_handler(AdminsMessage(), Command('admin'))
@@ -52,7 +54,8 @@ async def req(message: types.Message):
                          f'/edit_tariff - редактировать тариф \n'
                          f'/set_status_bid - установить статус заявки\n'
                          f'/edit_bid_options - редактировать варианты заявок \n'
-                         f'/list_users - выгрузить список пользователей\n'
+                         f'/list_users - выгрузить пользователей из БД\n'
+                         f'/change_user_list - загрузить изменения пользователей в БД\n'
                          f'/unload_bid - выгрузить заявки \n')
 
 
@@ -287,15 +290,15 @@ async def save_to_excel(data, file_name="пользователи.xlsx"):
     sheet = wb.active
 
     # Напишите заголовки столбцов
-    headers = ['user_id', 'number_applications', 'fio', 'city', 'telephone', 'number_referrals', 'amount_on_account',
-               'status', 'balance']
-    aliases = ['user_id', 'Количество_заявок', 'Фамилия Имя Отчество', 'Город', 'Телефон', 'Количество рефералов',
-               'Сумма на счету для вывода', 'Статус (роль)', 'Баланс (подписка)']
+    headers = ['user_id', 'Кто пригласил', 'first_name', 'last_name', 'username', 'Фамилия Имя Отчество', 'Город',
+               'Номер телефона', 'Реферальная ссылка', 'Список пользователей зарегистрированных по реферальной ссылке',
+               'Бонус 1', 'Бонус 2', 'Сумма на счету для вывода', 'Статус (роль)', 'Баланс (подписка)', 'status',
+               'Количество рефералов по уровням']
 
-    sheet.append(aliases)
+    sheet.append(headers)
 
     # Установите ширину столбца 25 для всех столбцов.
-    for col_num in range(1, len(aliases) + 1):
+    for col_num in range(1, len(headers) + 1):
         col_letter = get_column_letter(col_num)
         sheet.column_dimensions[col_letter].width = 25
 

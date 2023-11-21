@@ -12,17 +12,35 @@ class IsSubscriber(BoundFilter):  # проверка подписки
         chat_ids = await get_chat_ids_list()
         chat_dict = chat_ids.split(",")
         for chat_id in chat_dict:
-            sub = await bot.get_chat_member(chat_id=int(chat_id), user_id=message.from_user.id)
+            sub = await bot.get_chat_member(chat_id=chat_id, user_id=message.from_user.id)
             if sub.status != types.ChatMemberStatus.LEFT:  # если пользователь не вышел
                 return True
+
+            else:
+                subscription_keyboard = await generate_subscription_keyboard()
+
+                # Отправьте сообщение с инструкциями по подписке и клавиатурой.
+                await message.answer(
+                    f'Подпишись на телеграм канал(ы), что бы работали все функции бота:',
+                    reply_markup=subscription_keyboard
+                )
+                return False
+
+
+async def subscriber(user_id):  # проверка подписки
+    chat_ids = await get_chat_ids_list()
+    chat_dict = chat_ids.split(",")
+    for chat_id in chat_dict:
+        sub = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
+        if sub.status != types.ChatMemberStatus.LEFT:  # если пользователь не вышел
+            return True
 
         else:
             subscription_keyboard = await generate_subscription_keyboard()
 
             # Отправьте сообщение с инструкциями по подписке и клавиатурой.
-            await message.answer(
-                f'Подпишись на телеграм канал(ы), что бы работали все функции бота:',
-                reply_markup=subscription_keyboard
-            )
+            await bot.send_message(chat_id=user_id,
+                                   text=f'Подпишись на телеграм канал(ы), что бы работали все функции бота:',
+                                   reply_markup=subscription_keyboard
+                                   )
             return False
-

@@ -6,13 +6,13 @@ from utils.db_api.db_gino import TimedBaseModel
 class Users(TimedBaseModel):
     __tablename__ = 'users'
     user_id = Column(BigInteger, primary_key=True)
-    id_proposal = Column(String(200))  # номера в БД заявок
+    who_invited = Column(String(200))  # кто пригласил
     first_name = Column(String(200))
     last_name = Column(String(200))
     username = Column(String(50))
     fio = Column(String(200))  # ФИО
     city = Column(String(100))  # город
-    timezone = Column(Integer)  # часовой пояс
+    bonus_3 = Column(Integer)  # часовой пояс
     telephone = Column(BigInteger)  # номер телефона
     referral_id = Column(String(100))  # реферальная ссылка
     my_referrals = Column(String(10000))  # список пользователей зарегистрированных по реферальной ссылке
@@ -22,6 +22,7 @@ class Users(TimedBaseModel):
     role = Column(String(50))  # админ, обработчик заявок, менеджер, копирайтер, клиент
     balance = Column(Integer)
     status = Column(String(50))
+    level = Column(String(1000))  # сколько рефералов в каком уровне
 
     query: sql.select
 

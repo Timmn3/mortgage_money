@@ -9,8 +9,8 @@ load_dotenv()
 BOT_TOKEN = str(os.getenv('BOT_TOKEN'))
 
 # список администраторов бота
-admins = [1089138631, 6075652143]
-chat_ids = [-1001878077008]
+admins = [1089138631, 6075652143, 873307465]
+
 # user для обращения пользователей
 help_user = '@WinnRusso'
 

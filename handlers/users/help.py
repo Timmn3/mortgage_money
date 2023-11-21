@@ -2,6 +2,7 @@ from aiogram import types
 from aiogram.utils.deep_linking import get_start_link
 
 from data.config import help_user
+from filters import IsSubscriber
 from loader import dp
 from utils.db_api.proposal_commands import get_proposal_data
 from utils.db_api.users_commands import get_user_city_and_telephone

@@ -1,7 +1,9 @@
 from aiogram.utils.deep_linking import get_start_link
-
+import os
+from filters import IsSubscriber
+from filters.subscription import subscriber
 from keyboards.inline.contract import ikb_contracts
-from loader import dp
+from loader import dp, bot
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
@@ -55,12 +57,13 @@ keyboard_cancel.add(KeyboardButton('Отмена'))
 
 @dp.callback_query_handler(text='Подать заявку')
 async def accept_reg(call: types.CallbackQuery):
-    await call.message.edit_reply_markup()
-    await call.message.answer('Заполните заявку, ответив на вопросы, представленные ниже, '
-                              'или нажмите "отмена"')
-    await call.message.answer(f'Введите Фамилию, Имя и Отчество:', reply_markup=keyboard_cancel)
+    if await subscriber(call.from_user.id):
+        await call.message.edit_reply_markup()
+        await call.message.answer('Заполните заявку, ответив на вопросы, представленные ниже, '
+                                  'или нажмите "отмена"')
+        await call.message.answer(f'Введите Фамилию, Имя и Отчество:', reply_markup=keyboard_cancel)
 
-    await ApplyNow.fio.set()
+        await ApplyNow.fio.set()
 
 
 @dp.message_handler(state=ApplyNow.fio)
@@ -144,7 +147,7 @@ async def process_photo_passport_2(message: types.Message, state: FSMContext):
         await state.finish()  # обязательно завершаем состояние
     else:
         if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
+            await message.answer('Ошибка ввода! Пришлите заново:', reply_markup=keyboard_cancel)
         else:
             # сохраняем фото 2 страницы паспорта в состояние
             photo_passport_2 = message.photo[-1].file_id
@@ -166,7 +169,8 @@ async def process_photo_snils(message: types.Message, state: FSMContext):
             # сохраняем фото СНИЛС или фото водительских прав в состояние
             photo_snils = message.photo[-1].file_id
             await state.update_data(photo_snils=photo_snils)
-            await message.answer('Пришлите несколько фотографий (по одной) с сайта кредитных историй:'
+            await message.answer('Пришлите несколько фотографий (по одной) с сайта кредитных историй, '
+                                 'или отправьте один PDF документ:'
                                  , reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_1_credit_history_site.set()
 
@@ -175,33 +179,51 @@ all_photos_1 = []
 
 
 @dp.message_handler(state=ApplyNow.photo_from_1_credit_history_site,
-                    content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
+                    content_types=[types.ContentType.PHOTO, types.ContentType.TEXT, types.ContentType.DOCUMENT])
 async def process_photo_credit_history_1(message: types.Message, state: FSMContext):
+    user_id = message.from_user.id
     text = str(message.text)
     if text.lower() == 'отмена':
         await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
-        if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
-        else:
+        if message.content_type == "photo":
             try:
                 photo_credit_history_1 = message.photo[-1].file_id
-
-                # Добавляем фото в список
                 all_photos_1.append(photo_credit_history_1)
 
                 keyboard = types.InlineKeyboardMarkup()
                 keyboard.add(types.InlineKeyboardButton(text='Продолжить заполнять заявку',
                                                         callback_data='continue_application_1'))
 
-                # Отправляем сообщение с кнопками
                 await message.answer(
                     'Загрузите еще фото или нажмите "Продолжить заполнение заявки"!',
                     reply_markup=keyboard
                 )
             except Exception as e:
                 logger.error(e)
+        elif message.content_type == "document":
+            document_credit_history_1 = message.document.file_id
+            await state.update_data(photo_from_1_credit_history_site=['temp'])
+
+            # Получение информации о файле
+            file_info = await bot.get_file(document_credit_history_1)
+
+            # Скачивание файла
+            file_path = file_info.file_path
+            downloaded_file = await bot.download_file(file_path)
+
+            # Сохранение файла в папку temp
+            save_path = os.path.join("temp", f"{user_id}_document_1.pdf")
+            with open(save_path, 'wb') as file:
+                file.write(downloaded_file.read())
+
+            await message.answer('Теперь пришлите еще фотографии (по одной) с другого сайта кредитных историй,'
+                                 'или отправьте один PDF документ:',
+                                 reply_markup=keyboard_cancel)
+            await ApplyNow.photo_from_2_credit_history_site.set()
+        else:
+            await message.answer('Ошибка ввода! Пришлите заново:', reply_markup=keyboard_cancel)
 
 
 @dp.callback_query_handler(lambda c: c.data == 'continue_application_1', state='*')
@@ -220,33 +242,49 @@ all_photos_2 = []
 
 
 @dp.message_handler(state=ApplyNow.photo_from_2_credit_history_site,
-                    content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
+                    content_types=[types.ContentType.PHOTO, types.ContentType.TEXT, types.ContentType.DOCUMENT])
 async def process_photo_credit_history_2(message: types.Message, state: FSMContext):
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text='Продолжить заполнять заявку',
+                                            callback_data='continue_application_2'))
+    user_id = message.from_user.id
     text = str(message.text)
     if text.lower() == 'отмена':
         await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
         await state.finish()  # обязательно завершаем состояние
     else:
-        if message.content_type != "photo":
-            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
-        else:
+        if message.content_type == "photo":
             try:
-                # сохраняем фото с другого сайта кредитных историй в состояние
                 photo_credit_history_2 = message.photo[-1].file_id
-                # Добавляем фото в список
-                all_photos_2.append(photo_credit_history_2)
 
-                keyboard_continue = types.InlineKeyboardMarkup()
-                keyboard_continue.add(types.InlineKeyboardButton(text='Продолжить заполнять заявку',
-                                                                 callback_data='continue_application_2'))
+                # Добавляем фото в список
+                all_photos_1.append(photo_credit_history_2)
 
                 # Отправляем сообщение с кнопками
                 await message.answer(
                     'Загрузите еще фото или нажмите "Продолжить заполнение заявки"!',
-                    reply_markup=keyboard_continue
+                    reply_markup=keyboard
                 )
             except Exception as e:
                 logger.error(e)
+        elif message.content_type == "document":
+            document_credit_history_2 = message.document.file_id
+            await state.update_data(photo_from_2_credit_history_site=['temp'])
+
+            # Получение информации о файле
+            file_info = await bot.get_file(document_credit_history_2)
+
+            # Скачивание файла
+            file_path = file_info.file_path
+            downloaded_file = await bot.download_file(file_path)
+
+            # Сохранение файла в папку temp
+            save_path = os.path.join("temp", f"{user_id}_document_2.pdf")
+            with open(save_path, 'wb') as file:
+                file.write(downloaded_file.read())
+            await message.answer(text='Нажмите продолжить:', reply_markup=keyboard)
+        else:
+            await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
 
 
 # добавить обработку кнопок "оправить заявку" и "редактировать заявку"
@@ -258,10 +296,12 @@ keyboard_send.add(InlineKeyboardButton(text='Редактировать заяв
 @dp.callback_query_handler(lambda c: c.data == 'continue_application_2', state='*')
 async def continue_application(call: types.CallbackQuery, state: FSMContext):
     try:
-        await state.update_data(photo_from_2_credit_history_site=all_photos_2)
-        await call.message.delete()  # удаляем сообщение
         # извлекаем фактические данные из объекта Update
         data = await state.get_data()
+        if not data['photo_from_2_credit_history_site']:
+            await state.update_data(photo_from_2_credit_history_site=all_photos_2)
+        await call.message.delete()  # удаляем сообщение
+
         # обновляем данные в базе данных user
         await update_user_data(call.from_user.id, data)
 
@@ -289,6 +329,7 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
 async def merge_proposals(proposal, proposal_2):
     data = {
         'id': proposal['id'],
+        'username': proposal_2['username'],
         'variant_proposal': proposal['variant_proposal'],
         'fio': proposal['fio'],
         'city': proposal_2['city'],
@@ -308,7 +349,6 @@ async def submit_application(call: types.CallbackQuery, state: FSMContext):
     proposal = await get_proposal_data(call.from_user.id)
     proposal_2 = await get_user_city_and_telephone(call.from_user.id)
     data = await merge_proposals(proposal, proposal_2)
-    await create_excel_file(call.from_user.id, data)
     await call.message.answer('Спасибо за предоставленные данные. Ваша заявка принята!\n\n'
                               'Для начала работы по вашей заявке необходимо заключить договор.\n'
                               'Это обеспечит Вам гарантии исполнения договора и обоснование для вашего '
@@ -321,4 +361,5 @@ async def submit_application(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(f'Примите участие в партнерской программе:\n'
                               f'Приглашайте пользователей по своей реферальной ссылке: {ref_link}'
                               f'и получите бонусы', reply_markup=ikb_contracts)
+    await create_excel_file(call.from_user.id, data)
     await state.finish()

@@ -1,3 +1,5 @@
+from filters.subscription import subscriber
+from handlers.menu.apply_now import keyboard_send
 from keyboards.inline import ikb_personal_data
 from loader import dp
 from aiogram import types
@@ -5,7 +7,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from loguru import logger
-
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from utils.db_api.proposal_commands import update_fio_by_user_id, update_photo_passport_1_by_user_id, \
     update_photo_passport_2_by_user_id, update_photo_snils_by_user_id, \
     update_photo_from_1_credit_history_site_by_user_id, update_photo_from_2_credit_history_site_by_user_id
@@ -26,7 +28,8 @@ class EditPersonalData(StatesGroup):
 # Обработчик для обработки "Редактировать заявку" callback
 @dp.callback_query_handler(lambda c: c.data == 'Редактировать заявку', state='*')
 async def edit_application(call: types.CallbackQuery, state: FSMContext):
-    await call.message.answer('Выберите, что бы вы хотели поменять и выберите опцию:', reply_markup=ikb_personal_data)
+    if await subscriber(call.from_user.id):
+        await call.message.answer('Выберите, что бы вы хотели поменять и выберите опцию:', reply_markup=ikb_personal_data)
 
 
 # Обработчик обратного запроса для обработки параметров редактирования персональных данных
@@ -86,16 +89,16 @@ async def process_edit_city(message: types.Message, state: FSMContext):
     new_values = message.text
     await update_user_city(message.from_user.id, new_values)
     await state.finish()
-    await message.answer(f'Вы успешно обновили персональные данные')
+    await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 
 # Обработчик для получения новых значения phone
 @dp.message_handler(state=EditPersonalData.edit_phone)
 async def process_edit_phone(message: types.Message, state: FSMContext):
-    new_values = message.text
+    new_values = int(message.text)
     await update_user_telephone(message.from_user.id, new_values)
     await state.finish()
-    await message.answer(f'Вы успешно обновили персональные данные')
+    await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 
 # Обработчик для получения новых значения edit_photo_passport_1
@@ -105,7 +108,7 @@ async def process_edit_photo_passport_1(message: types.Message, state: FSMContex
     file_id = photo.file_id
     await update_photo_passport_1_by_user_id(message.from_user.id, file_id)
     await state.finish()
-    await message.answer(f'Вы успешно обновили персональные данные')
+    await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 
 # Обработчик для получения новых значения edit_photo_passport_2
@@ -115,7 +118,7 @@ async def process_edit_photo_passport_2(message: types.Message, state: FSMContex
     file_id = photo.file_id
     await update_photo_passport_2_by_user_id(message.from_user.id, file_id)
     await state.finish()
-    await message.answer(f'Вы успешно обновили персональные данные')
+    await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 
 # Обработчик для получения новых значения СНИЛС
@@ -125,45 +128,57 @@ async def process_edit_photo_snils(message: types.Message, state: FSMContext):
     file_id = photo.file_id
     await update_photo_snils_by_user_id(message.from_user.id, file_id)
     await state.finish()
-    await message.answer(f'Вы успешно обновили персональные данные')
+    await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 
 all_photos_1 = []
+
+keyboard_download_1 = ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_download_1.add(KeyboardButton('загружено'))
 
 
 # Обработчик для получения новых значения credit_history_site1
 @dp.message_handler(state=EditPersonalData.edit_photo_from_1_credit_history_site)
 async def process_edit_photo_from_1_credit_history_site(message: types.Message, state: FSMContext):
-    await message.answer(f'Загружайте фотографии, когда все загрузите, напишите слово "загружено"')
+    await message.answer(f'Загружайте несколько фотографий по очереди или один PDF файл:')
     if message.text == 'загружено':
         await state.finish()
-        await message.answer(f'Вы успешно обновили персональные данные')
+        await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
         photo_from_1 = ','.join(map(str, all_photos_1))
         await update_photo_from_1_credit_history_site_by_user_id(message.from_user.id, photo_from_1)
-    if message.content_type == "photo":
+    elif message.content_type == "photo":
         photo = message.photo[-1]  # Берем последнюю фотографию из списка
         file_id = photo.file_id
         all_photos_1.append(file_id)
-        await message.answer(f'жду еще...')
-
+        await message.answer(f'жду еще...', reply_markup=keyboard_download_1)
+    elif message.content_type == "document":
+        document_credit_history_1 = message.document.file_id
+        await update_photo_from_1_credit_history_site_by_user_id(message.from_user.id, document_credit_history_1)
+        await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 all_photos_2 = []
 
 
+keyboard_download_2 = ReplyKeyboardMarkup(resize_keyboard=True)
+keyboard_download_2.add(KeyboardButton('загружено'))
+
 # Обработчик для получения новых значения credit_history_site2
 @dp.message_handler(state=EditPersonalData.edit_photo_from_2_credit_history_site)
 async def process_edit_photo_from_2_credit_history_site(message: types.Message, state: FSMContext):
-    await message.answer(f'Загружайте фотографии, когда все загрузите, напишите слово "загружено"')
-    if message.text == 'загружено':
+    await message.answer(f'Загружайте несколько фотографий по очереди или один PDF файл:')
+    if message.text == 'Загружено':
         await state.finish()
-        await message.answer(f'Вы успешно обновили персональные данные')
+        await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
         photo_from_2 = ','.join(map(str, all_photos_2))
         await update_photo_from_2_credit_history_site_by_user_id(message.from_user.id, photo_from_2)
-    if message.content_type == "photo":
+    elif message.content_type == "photo":
         photo = message.photo[-1]  # Берем последнюю фотографию из списка
         file_id = photo.file_id
         all_photos_2.append(file_id)
-        await message.answer(f'жду еще...')
-
+        await message.answer(f'жду еще...', reply_markup=keyboard_download_2)
+    elif message.content_type == "document":
+        document_credit_history_1 = message.document.file_id
+        await update_photo_from_1_credit_history_site_by_user_id(message.from_user.id, document_credit_history_1)
+        await message.answer(f'Вы успешно обновили персональные данные', reply_markup=keyboard_send)
 
 

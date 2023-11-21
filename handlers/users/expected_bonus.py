@@ -1,9 +1,11 @@
 from aiogram import types
+
+from filters import IsSubscriber
 from loader import dp
 
 
 
-@dp.message_handler(text="/expected_bonus")  # создаем хэндлер
+@dp.message_handler(IsSubscriber(), text="/expected_bonus")  # создаем хэндлер
 async def command_ref(message: types.Message):  # создаем асинхронную функцию
     await message.answer(
         f'<b>ОЖИДАЕМЫЙ БОНУС</b> - это условное значение и показатель размера бонуса, при условии, что все 100% регистраций подадут заявку на Ипотеку и заявка перейдет в статус ПРИНЯТА.\n'

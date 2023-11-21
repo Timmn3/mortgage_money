@@ -2,6 +2,7 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.dispatcher import FSMContext
 
 from bot_send.notify_admins import send_admins
+from filters.subscription import subscriber
 from loader import dp
 from aiogram import types
 
@@ -15,10 +16,11 @@ class Balance(StatesGroup):
 
 @dp.callback_query_handler(text='Вывод средств')
 async def accept_reg(call: types.CallbackQuery):
-    balance = await get_user_balance(call.from_user.id)
-    await call.message.answer(f'Ваш баланс: {balance} ₽\n'
-                              f'введите сумму, которую хотите вывести:')
-    await Balance.amount.set()
+    if await subscriber(call.from_user.id):
+        balance = await get_user_balance(call.from_user.id)
+        await call.message.answer(f'Ваш баланс: {balance} ₽\n'
+                                  f'введите сумму, которую хотите вывести:')
+        await Balance.amount.set()
 
 
 @dp.message_handler(state=Balance.amount)

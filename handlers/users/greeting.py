@@ -1,12 +1,12 @@
 from aiogram import types
 
-
+from filters import IsSubscriber
 from loader import dp
 from utils.db_api.admin_commands import get_greeting_foto_id, get_greeting_video_id
 from loguru import logger
 
 
-@dp.message_handler(text="/instruction")
+@dp.message_handler(IsSubscriber(), text="/instruction")
 async def command_instruction(message: types.Message):
     await greeting(message)
     from handlers.users.bot_start import out_text

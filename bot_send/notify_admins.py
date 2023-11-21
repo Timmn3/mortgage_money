@@ -9,8 +9,9 @@ from utils.db_api.users_commands import count_users
 async def on_startup_notify(dp: Dispatcher):
     for admin in admins:
         try:
-            text = 'Бот запущен'
-            await dp.bot.send_message(chat_id=admin, text=text)
+            pass
+            # text = 'Бот запущен'
+            # await dp.bot.send_message(chat_id=admin, text=text)
         except Exception as err:
             logger.exception(err)
 

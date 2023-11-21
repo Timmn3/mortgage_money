@@ -1,5 +1,7 @@
 from aiogram import types
 from aiogram.dispatcher.filters import Command
+
+from filters import IsSubscriber
 from keyboards.inline import ikb_menu
 from loader import dp
 

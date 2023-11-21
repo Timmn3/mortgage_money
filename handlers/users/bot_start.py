@@ -4,6 +4,7 @@ from aiogram.utils.deep_linking import get_start_link
 
 from bot_send.notify_admins import new_user_registration
 from filters import IsSubscriber
+from filters.subscription import subscriber
 from handlers.users.greeting import greeting
 from handlers.users.levels import set_levels
 from keyboards.inline import ikb_rules_contracts
@@ -13,7 +14,7 @@ from utils.db_api import users_commands as commands
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from utils.db_api.admin_commands import get_greeting_document_ids
-from utils.db_api.users_commands import update_my_referrals
+from utils.db_api.users_commands import update_my_referrals, save_count_levels, update_who_invited
 from loguru import logger
 
 
@@ -51,13 +52,13 @@ async def command_start(message: types.Message):
             await message.answer('Ты забанен')
     else:
         await commands.add_user(user_id=user_id,
-                                id_proposal='',
+                                who_invited=new_args,
                                 first_name=message.from_user.first_name,
                                 last_name=message.from_user.last_name,
                                 username=message.from_user.username,
                                 fio='',
                                 city='',
-                                timezone=3,
+                                bonus_3=0,
                                 telephone=0,
                                 referral_id=ref_link,
                                 my_referrals='',
@@ -66,7 +67,8 @@ async def command_start(message: types.Message):
                                 money=0,
                                 role='',
                                 balance=0,
-                                status='active'
+                                status='active',
+                                level='{"1":0,"2":0, "3":0,"4":0,"5":0}'
                                 )
 
         # отправляем админам нового пользователя
@@ -74,12 +76,12 @@ async def command_start(message: types.Message):
                                     username=message.from_user.username)
 
         if new_args != '0':
-
+            #
             await set_levels(int(new_args))
-
-            # Обновление my_referrals при поступлении нового реферала
-            await update_my_referrals(int(new_args), int(user_id))
-
+            #
+            # # Обновление my_referrals при поступлении нового реферала
+            # await update_my_referrals(int(new_args), int(user_id))
+            await save_count_levels(int(new_args), 1)
             await dp.bot.send_message(chat_id=int(new_args),
                                       text=(
                                           f'По твоей ссылке зарегистрировался(-ась) '
@@ -127,31 +129,34 @@ ikb_subscribed = InlineKeyboardMarkup(inline_keyboard=[
 
 @dp.callback_query_handler(text='subscribed')
 async def accept_reg(call: types.CallbackQuery):
-    # приветствие
-    await greeting(call.message)
+    if await subscriber(call.from_user.id):
+        # приветствие
+        await greeting(call.message)
 
-    documents_ids = await get_greeting_document_ids()
+        documents_ids = await get_greeting_document_ids()
 
-    if documents_ids:
-        await call.message.answer('Внимательно ознакомьтесь с договорами, правилами и иными документами '
-                                  'по проекту:', reply_markup=ikb_rules_contracts)
+        if documents_ids:
+            await call.message.answer('Внимательно ознакомьтесь с договорами, правилами и иными документами '
+                                      'по проекту:', reply_markup=ikb_rules_contracts)
 
-        # for document_id in documents_ids:
-        #     if document_id:
-                # await call.message.answer(document_id)
+            # for document_id in documents_ids:
+            #     if document_id:
+                    # await call.message.answer(document_id)
 
-        keyboard = types.InlineKeyboardMarkup()
-        button_text = "Ознакомлен"
-        callback_data = "acknowledge"
-        keyboard.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
+            keyboard = types.InlineKeyboardMarkup()
+            button_text = "Ознакомлен"
+            callback_data = "acknowledge"
+            keyboard.add(types.InlineKeyboardButton(text=button_text, callback_data=callback_data))
 
-        await call.message.answer("Если вы ознакомились с документами, нажмите кнопку:", reply_markup=keyboard)
+            await call.message.answer("Если вы ознакомились с документами, нажмите кнопку:", reply_markup=keyboard)
 
-        @dp.callback_query_handler(lambda callback_query: callback_query.data == 'acknowledge')
-        async def acknowledge_documents(callback_query: types.CallbackQuery):
-            user_id = callback_query.from_user.id
-            await call.message.answer_photo(
-                'AgACAgIAAxkBAAID2mVZLRuxG34vvUqPS8mu0zs4bQgdAAKU1TEbrV7JSqHRsFEEfgpiAQADAgADeQADMwQ'
-                )
-            await bot.send_message(user_id,
-                                   out_text)
+            @dp.callback_query_handler(lambda callback_query: callback_query.data == 'acknowledge')
+            async def acknowledge_documents(callback_query: types.CallbackQuery):
+                user_id = callback_query.from_user.id
+                await call.message.answer_photo(
+                    'AgACAgIAAxkBAAID2mVZLRuxG34vvUqPS8mu0zs4bQgdAAKU1TEbrV7JSqHRsFEEfgpiAQADAgADeQADMwQ'
+                    )
+                await bot.send_message(user_id,
+                                       out_text)
+    else:
+        return False
