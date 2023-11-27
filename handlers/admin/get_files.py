@@ -9,6 +9,7 @@ from loguru import logger
 async def get_photo_id(message: Message):
     try:
         photo_id = message.photo[-1].file_id
+        print(photo_id)
         # await save_greeting_photo_id(photo_id)
     except Exception as e:
         logger.exception(f"Ошибка сохранения фотографии: {e}")

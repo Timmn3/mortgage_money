@@ -14,6 +14,7 @@ from misc.save_excel import create_excel_file
 from utils.db_api.admin_commands import get_variants_proposal
 from utils.db_api.proposal_commands import add_proposal, get_proposal_data
 from utils.db_api.users_commands import update_user_data, get_user_city_and_telephone
+import re
 
 
 class ApplyNow(StatesGroup):
@@ -113,13 +114,23 @@ async def process_phone_text(message: types.Message, state: FSMContext):
         await state.finish()  # обязательно завершаем состояние
     else:
         try:
+            # Пытаемся получить номер телефона из контакта
             contact = message.contact.phone_number
             await state.update_data(phone=contact)
-            await message.answer('Пришлите фото 1 страницы паспорта:', reply_markup=keyboard_cancel)
-            await ApplyNow.photo_passport_1.set()
-        except Exception as e:
-            await message.answer('Отправьте свой номер телефона', reply_markup=keyboard_cancel)
-            logger.error(e)
+        except AttributeError:
+            # Если не удалось получить номер из контакта, попробуем из текста
+            phone_match = re.search(r'\b(?:8|\+7)?9[0-9]{9}\b', text)
+            if phone_match:
+                contact = phone_match.group(0)
+                await state.update_data(phone=contact)
+            else:
+                # Если номер не найден, сообщаем пользователю и завершаем функцию
+                await message.answer('Отправьте свой номер телефона в правильном формате (89*********)',
+                                     reply_markup=keyboard_cancel)
+                return
+
+        await message.answer('Пришлите фото 1 страницы паспорта:', reply_markup=keyboard_cancel)
+        await ApplyNow.photo_passport_1.set()
 
 
 @dp.message_handler(state=ApplyNow.photo_passport_1, content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
@@ -169,13 +180,17 @@ async def process_photo_snils(message: types.Message, state: FSMContext):
             # сохраняем фото СНИЛС или фото водительских прав в состояние
             photo_snils = message.photo[-1].file_id
             await state.update_data(photo_snils=photo_snils)
-            await message.answer('Пришлите несколько фотографий (по одной) с сайта кредитных историй, '
-                                 'или отправьте один PDF документ:'
-                                 , reply_markup=keyboard_cancel)
+            foto = "AgACAgIAAxkBAAIUhGVk5G4BTOEDJq5b6HOJcykm8k40AAJT1jEbnkwoSwzfTAnbu70bAQADAgADeAADMwQ"
+            await message.answer_photo(foto, 'Отправьте отчет PDF, скаченный с раздела КРЕДИТНАЯ ИСТОРИЯ с сайта \n'
+                                             'https://person.nbki.ru:'
+                                       , reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_1_credit_history_site.set()
 
 
 all_photos_1 = []
+foto_1 = "AgACAgIAAxkBAAIUhWVk5Hn48_2Zv0qIQLrKBRCTlveoAAJh1jEbnkwoSxrlUU31qHSxAQADAgADeQADMwQ"
+foto_2 = "AgACAgIAAxkBAAIUhmVk5ISCkLZAqyh_zBlKahh6wEzMAAJk1jEbnkwoS8dK_IBd6rGbAQADAgADeQADMwQ"
+foto_3 = "AgACAgIAAxkBAAIUh2Vk5IuCE-wlHdLDfTZXlw4rLLzvAAJm1jEbnkwoSybVdy8kF_kBAQADAgADeQADMwQ"
 
 
 @dp.message_handler(state=ApplyNow.photo_from_1_credit_history_site,
@@ -218,9 +233,14 @@ async def process_photo_credit_history_1(message: types.Message, state: FSMConte
             with open(save_path, 'wb') as file:
                 file.write(downloaded_file.read())
 
-            await message.answer('Теперь пришлите еще фотографии (по одной) с другого сайта кредитных историй,'
-                                 'или отправьте один PDF документ:',
-                                 reply_markup=keyboard_cancel)
+            await message.answer_photo(foto_1,
+                                       'Внутри личного кабинета на сайте Кредистория https://credistory.ru '
+                                       'нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
+
+            await message.answer_photo(foto_2, 'Выбираете последний загруженный отчет')
+
+            await message.answer_photo(foto_3, 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
+                                       reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_2_credit_history_site.set()
         else:
             await message.answer('Ошибка ввода! Пришлите заново:', reply_markup=keyboard_cancel)
@@ -231,8 +251,14 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
     await call.message.delete()  # удаляем сообщение
     try:
         await state.update_data(photo_from_1_credit_history_site=all_photos_1)
-        await call.message.answer('Теперь пришлите еще фотографии (по одной) с другого сайта кредитных историй:',
-                                  reply_markup=keyboard_cancel)
+        await call.message.answer_photo(foto_1,
+                                   'Внутри личного кабинета на сайте Кредистория https://credistory.ru '
+                                   'нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
+
+        await call.message.answer_photo(foto_2, 'Выбираете последний загруженный отчет')
+
+        await call.message.answer_photo(foto_3, 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
+                                   reply_markup=keyboard_cancel)
         await ApplyNow.photo_from_2_credit_history_site.set()
     except Exception as e:
         logger.error(e)
@@ -258,8 +284,8 @@ async def process_photo_credit_history_2(message: types.Message, state: FSMConte
                 photo_credit_history_2 = message.photo[-1].file_id
 
                 # Добавляем фото в список
-                all_photos_1.append(photo_credit_history_2)
-
+                all_photos_2.append(photo_credit_history_2)
+                await state.update_data(photo_from_2_credit_history_site='foto')
                 # Отправляем сообщение с кнопками
                 await message.answer(
                     'Загрузите еще фото или нажмите "Продолжить заполнение заявки"!',
@@ -295,35 +321,35 @@ keyboard_send.add(InlineKeyboardButton(text='Редактировать заяв
 
 @dp.callback_query_handler(lambda c: c.data == 'continue_application_2', state='*')
 async def continue_application(call: types.CallbackQuery, state: FSMContext):
-    try:
-        # извлекаем фактические данные из объекта Update
-        data = await state.get_data()
-        if not data['photo_from_2_credit_history_site']:
-            await state.update_data(photo_from_2_credit_history_site=all_photos_2)
-        await call.message.delete()  # удаляем сообщение
+    # извлекаем фактические данные из объекта Update
+    data = await state.get_data()
+    if data['photo_from_2_credit_history_site'] != ['temp']:
+        await state.update_data(photo_from_2_credit_history_site=all_photos_2)
+    data = await state.get_data()
 
-        # обновляем данные в базе данных user
-        await update_user_data(call.from_user.id, data)
+    await call.message.delete()  # удаляем сообщение
 
-        photo_list_1 = data['photo_from_1_credit_history_site']
-        photo_from_1_credit_history_site_str = ','.join(map(str, photo_list_1))
+    # обновляем данные в базе данных user
+    await update_user_data(call.from_user.id, data)
 
-        photo_list_2 = data['photo_from_2_credit_history_site']
-        photo_from_2_credit_history_site_str = ','.join(map(str, photo_list_2))
+    photo_list_1 = data['photo_from_1_credit_history_site']
+    photo_from_1_credit_history_site_str = ','.join(map(str, photo_list_1))
 
-        # создаем заявку в БД proposal
-        await add_proposal(user_id=call.from_user.id, fio=data['fio'], variant_proposal=data['variant_proposal'],
-                           status_proposal='', approved_amount=0, loan_amount=0,
-                           photo_passport_1=data['photo_passport_1'], photo_passport_2=data['photo_passport_2'],
-                           photo_snils=data['photo_snils'],
-                           photo_from_1_credit_history_site=photo_from_1_credit_history_site_str,
-                           photo_from_2_credit_history_site=photo_from_2_credit_history_site_str)
+    photo_list_2 = data['photo_from_2_credit_history_site']
+    photo_from_2_credit_history_site_str = ','.join(map(str, photo_list_2))
 
-        await call.message.answer('Данные успешно загружены!', reply_markup=ReplyKeyboardRemove())
-        await call.message.answer('Выберите действие:', reply_markup=keyboard_send)
+    # создаем заявку в БД proposal
+    await add_proposal(user_id=call.from_user.id, fio=data['fio'], variant_proposal=data['variant_proposal'],
+                       status_proposal='', approved_amount=0, loan_amount=0,
+                       photo_passport_1=data['photo_passport_1'], photo_passport_2=data['photo_passport_2'],
+                       photo_snils=data['photo_snils'],
+                       photo_from_1_credit_history_site=photo_from_1_credit_history_site_str,
+                       photo_from_2_credit_history_site=photo_from_2_credit_history_site_str)
 
-    except Exception as e:
-        logger.error(e)
+    await call.message.answer('Ура! Вы справились! Данные по вашей заявке успешно загружены! '
+                              'Осталось оправить или отредактировать заявку.\n\n✅ Выберите действие:',
+                              reply_markup=ReplyKeyboardRemove())
+    await call.message.answer('Выберите действие:', reply_markup=keyboard_send)
 
 
 async def merge_proposals(proposal, proposal_2):

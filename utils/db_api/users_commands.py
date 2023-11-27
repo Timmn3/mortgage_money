@@ -285,6 +285,7 @@ async def select_all_users_with_data():
             'Баланс (подписка)': user.balance,
             'status': user.status,
             'Количество рефералов по уровням': user.level,
+            'Дата регистрации': user.created_at.strftime('%Y.%m.%d')
 
         }
 
@@ -336,8 +337,7 @@ async def save_count_levels(user_id, level):
         print('Пользователь не найден')
 
 
-
-async def print_user_levels(user_id):
+async def print_user_levels(user_id: int):
     try:
         user = await Users.query.where(Users.user_id == user_id).gino.first()
 
@@ -526,3 +526,103 @@ async def reset_all_user_data():
     except Exception as e:
         logger.error(f"Error resetting user data: {e}")
 
+
+async def count_users_by_who_invited(who_invited_value):
+    try:
+        # Use a database query to count occurrences of who_invited_value in the database
+        user_count = await db.select([db.func.count()]). \
+            where(Users.who_invited == who_invited_value).gino.scalar()
+
+        return user_count if user_count else 0
+
+    except Exception as e:
+        print(f"Error counting users by who_invited: {e}")
+        return 0
+
+
+async def get_user_id_and_who_invited_dict():
+    try:
+        # Fetch all users from the database
+        users = await Users.query.gino.all()
+
+        # Create a dictionary to store user_id and who_invited values
+        user_id_and_who_invited_dict = {user.user_id: user.who_invited for user in users}
+
+        return user_id_and_who_invited_dict
+
+    except Exception as e:
+        print(f"Error getting user_id and who_invited data: {e}")
+        return {}
+
+
+async def find_user_ids_by_who_invited(inviter_username: str):
+    try:
+        # Используйте запрос, чтобы найти пользователей с указанным значением who_invited.
+        users_with_value = await Users.query.where(Users.who_invited == inviter_username).gino.all()
+
+        # Extract user_id values from the result list
+        user_ids_with_value = [user.user_id for user in users_with_value]
+
+        return user_ids_with_value
+
+    except Exception as e:
+        print(f"Error finding user_ids by who_invited: {e}")
+        return []
+
+
+async def find_user_ids_by_nik(inviter_username: str):
+    try:
+        # Используйте запрос, чтобы найти пользователей с указанным значением who_invited.
+        users_with_value = await Users.query.where(Users.who_invited == inviter_username).gino.all()
+
+        # Extract user_id values from the result list
+        user_ids_with_value = [user.username for user in users_with_value]
+
+        return user_ids_with_value
+
+    except Exception as e:
+        print(f"Error finding user_ids by who_invited: {e}")
+        return []
+
+
+async def get_user_id_who_invited_dict():
+    try:
+        # Fetch all users from the database
+        users = await Users.query.gino.all()
+
+        # Create a dictionary with user_id as the key and who_invited as the value
+        user_id_who_invited_dict = {int(user.user_id): int(user.who_invited) if user.who_invited.isdigit() else None for user in users}
+
+        return user_id_who_invited_dict
+
+    except Exception as e:
+        print(f"Error getting user_id who_invited dictionary: {e}")
+        return {}
+
+
+async def get_user_id_by_username(username):
+    try:
+        # Search for the user with the specified username
+        user = await Users.query.where(Users.username == username).gino.first()
+
+        if user:
+            return user.user_id
+        else:
+            return None  # User not found for the given username
+
+    except Exception as e:
+        print(f"Error getting user_id by username: {e}")
+        return None
+
+
+async def get_user_created_at(user_id: int):
+    """Получить значение created_at для данного user_id."""
+    try:
+        user = await Users.query.where(Users.user_id == user_id).gino.first()
+        if user:
+            return user.created_at.strftime('%Y-%m-%d %H:%M')
+        else:
+            return None  # Пользователь не найден
+    except Exception as e:
+        logger.error(f"Ошибка получения created_at для пользователя: {e}")
+        return None

@@ -13,7 +13,6 @@ import io
 import fitz  # PyMuPDF
 
 
-
 async def download_telegram_image(file_id, output_path):
     bot_token = BOT_TOKEN  # Замените на свой токен
     api_url = f'https://api.telegram.org/bot{bot_token}/getFile'
