@@ -180,7 +180,7 @@ async def create_excel_file(user_id, data):
                 logger.exception(e)
 
         # Сохраняем файл
-        path = f'proposal/{file_name}'
+        path = f'admin_documents/proposal/{file_name}'
         wb.save(path)
 
         # Удаляем временные файлы
@@ -188,7 +188,6 @@ async def create_excel_file(user_id, data):
             os.remove(temp_file)
 
         await send_proposal(dp, username, path, today_date, fio, city, variant_proposal)
-
 
 
 def format_name(input_string):

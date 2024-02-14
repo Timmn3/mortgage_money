@@ -12,7 +12,7 @@ BOT_TOKEN = str(os.getenv('BOT_TOKEN'))
 admins = [1089138631, 6075652143, 873307465]
 
 # user для обращения пользователей
-help_user = '@WinnRusso'
+help_user = '@TeamCapitalSupportBot'
 
 ip = os.getenv('IP')
 PG_USER = str(os.getenv('PG_USER'))

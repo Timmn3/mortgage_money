@@ -1,5 +1,6 @@
 """ Изменить список пользователей """
 from filters import AdminsMessage
+from keyboards.cancel import keyboard_cancel
 from loader import dp, bot
 from aiogram import types
 from aiogram.dispatcher.filters import Command
@@ -12,10 +13,6 @@ from aiogram.types import (ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRem
 
 class Change(StatesGroup):
     list = State()
-
-
-keyboard_cancel = ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard_cancel.add(KeyboardButton('Отмена'))
 
 
 # команда /message отправить сообщения всем пользователям
@@ -42,7 +39,7 @@ async def change_file(message: types.Message, state: FSMContext):
         downloaded_file = await bot.download_file(file_path)
 
         # Сохраняем файл на сервере
-        save_path = f"temp/пользователи.xlsx"
+        save_path = f"admin_documents/temp/пользователи.xlsx"
         with open(save_path, 'wb') as new_file:
             new_file.write(downloaded_file.read())
 

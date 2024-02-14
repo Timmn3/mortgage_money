@@ -39,6 +39,20 @@ async def add_user(user_id: int, who_invited: str, first_name: str, last_name: s
         print('Пользователь не добавлен')
 
 
+async def delete_user(user_id: int):
+    """Удаление пользователя по user_id."""
+    try:
+        user = await Users.query.where(Users.user_id == user_id).gino.first()
+        if user:
+            await user.delete()
+            return True
+        else:
+            return False  # User not found
+    except Exception as e:
+        logger.error(f"Ошибка удаления пользователя: {e}")
+        return False
+
+
 async def check_user_status(user_id: int):
     """Проверьте статус пользователя по user_id."""
     try:

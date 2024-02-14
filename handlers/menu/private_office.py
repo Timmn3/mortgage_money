@@ -7,7 +7,7 @@ from utils.db_api.users_commands import get_user_referrals, get_user_balance, ge
     find_user_ids_by_nik
 
 
-@dp.callback_query_handler(text='Личный кабинет')
+@dp.callback_query_handler(text='Партнерская программа')
 async def accept_reg(call: types.CallbackQuery):
     if await subscriber(call.from_user.id):
         ref_link = await get_start_link(payload=call.from_user.id)

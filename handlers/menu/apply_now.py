@@ -2,6 +2,7 @@ from aiogram.utils.deep_linking import get_start_link
 import os
 from filters import IsSubscriber
 from filters.subscription import subscriber
+from keyboards.cancel import keyboard_cancel
 from keyboards.inline.contract import ikb_contracts
 from loader import dp, bot
 from aiogram import types
@@ -50,10 +51,6 @@ class ApplyNow(StatesGroup):
 #     await message.answer(f'Введите Фамилию, Имя и Отчество:')
 #
 #     await ApplyNow.fio.set()
-
-
-keyboard_cancel = ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard_cancel.add(KeyboardButton('Отмена'))
 
 
 @dp.callback_query_handler(text='Подать заявку')
@@ -167,12 +164,22 @@ async def process_photo_passport_2(message: types.Message, state: FSMContext):
             await ApplyNow.photo_snils.set()
 
 
+import os
+
+# Путь к папке с изображениями
+foto_folder = "admin_documents/foto"
+foto_1 = os.path.join(foto_folder, "foto_1.jpg")
+foto_2 = os.path.join(foto_folder, "foto_2.jpg")
+foto_3 = os.path.join(foto_folder, "foto_3.jpg")
+foto_4 = os.path.join(foto_folder, "foto_4.jpg")
+
+
 @dp.message_handler(state=ApplyNow.photo_snils, content_types=[types.ContentType.PHOTO, types.ContentType.TEXT])
 async def process_photo_snils(message: types.Message, state: FSMContext):
     text = str(message.text)
     if text.lower() == 'отмена':
         await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
-        await state.finish()  # обязательно завершаем состояние
+        await state.finish()
     else:
         if message.content_type != "photo":
             await message.answer('Ошибка ввода! Пришлите фотографию:', reply_markup=keyboard_cancel)
@@ -180,17 +187,15 @@ async def process_photo_snils(message: types.Message, state: FSMContext):
             # сохраняем фото СНИЛС или фото водительских прав в состояние
             photo_snils = message.photo[-1].file_id
             await state.update_data(photo_snils=photo_snils)
-            foto = "AgACAgIAAxkBAAIUhGVk5G4BTOEDJq5b6HOJcykm8k40AAJT1jEbnkwoSwzfTAnbu70bAQADAgADeAADMwQ"
-            await message.answer_photo(foto, 'Отправьте отчет PDF, скаченный с раздела КРЕДИТНАЯ ИСТОРИЯ с сайта \n'
-                                             'https://person.nbki.ru:'
-                                       , reply_markup=keyboard_cancel)
+
+            # Открываем файл и отправляем его
+            with open(foto_1, 'rb') as photo_file:
+                await message.answer_photo(photo_file, 'Отправьте отчет PDF, скаченный с раздела КРЕДИТНАЯ ИСТОРИЯ '
+                                                       'с сайта https://person.nbki.ru:', reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_1_credit_history_site.set()
 
 
-all_photos_1 = []
-foto_1 = "AgACAgIAAxkBAAIUhWVk5Hn48_2Zv0qIQLrKBRCTlveoAAJh1jEbnkwoSxrlUU31qHSxAQADAgADeQADMwQ"
-foto_2 = "AgACAgIAAxkBAAIUhmVk5ISCkLZAqyh_zBlKahh6wEzMAAJk1jEbnkwoS8dK_IBd6rGbAQADAgADeQADMwQ"
-foto_3 = "AgACAgIAAxkBAAIUh2Vk5IuCE-wlHdLDfTZXlw4rLLzvAAJm1jEbnkwoSybVdy8kF_kBAQADAgADeQADMwQ"
+all_photos_1 = [os.path.join(foto_folder, f) for f in os.listdir(foto_folder) if f.endswith(('.jpg', '.jpeg', '.png'))]
 
 
 @dp.message_handler(state=ApplyNow.photo_from_1_credit_history_site,
@@ -200,7 +205,7 @@ async def process_photo_credit_history_1(message: types.Message, state: FSMConte
     text = str(message.text)
     if text.lower() == 'отмена':
         await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
-        await state.finish()  # обязательно завершаем состояние
+        await state.finish()
     else:
         if message.content_type == "photo":
             try:
@@ -221,25 +226,23 @@ async def process_photo_credit_history_1(message: types.Message, state: FSMConte
             document_credit_history_1 = message.document.file_id
             await state.update_data(photo_from_1_credit_history_site=['temp'])
 
-            # Получение информации о файле
             file_info = await bot.get_file(document_credit_history_1)
-
-            # Скачивание файла
             file_path = file_info.file_path
             downloaded_file = await bot.download_file(file_path)
 
-            # Сохранение файла в папку temp
             save_path = os.path.join("temp", f"{user_id}_document_1.pdf")
             with open(save_path, 'wb') as file:
                 file.write(downloaded_file.read())
 
-            await message.answer_photo(foto_1,
-                                       'Внутри личного кабинета на сайте Кредистория https://credistory.ru '
-                                       'нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
+            with open(foto_2, 'rb') as photo_file:
+                await message.answer_photo(photo_file,'Внутри личного кабинета на сайте Кредистория https:'
+                                                      '//credistory.ru нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
 
-            await message.answer_photo(foto_2, 'Выбираете последний загруженный отчет')
+            with open(foto_3, 'rb') as photo_file:
+                await message.answer_photo(photo_file, 'Выбираете последний загруженный отчет')
 
-            await message.answer_photo(foto_3, 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
+            with open(foto_4, 'rb') as photo_file:
+                await message.answer_photo(photo_file, 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
                                        reply_markup=keyboard_cancel)
             await ApplyNow.photo_from_2_credit_history_site.set()
         else:
@@ -248,17 +251,17 @@ async def process_photo_credit_history_1(message: types.Message, state: FSMConte
 
 @dp.callback_query_handler(lambda c: c.data == 'continue_application_1', state='*')
 async def continue_application(call: types.CallbackQuery, state: FSMContext):
-    await call.message.delete()  # удаляем сообщение
+    await call.message.delete()
     try:
         await state.update_data(photo_from_1_credit_history_site=all_photos_1)
-        await call.message.answer_photo(foto_1,
-                                   'Внутри личного кабинета на сайте Кредистория https://credistory.ru '
-                                   'нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
+        await call.message.answer_photo(all_photos_1[0],
+                                        'Внутри личного кабинета на сайте Кредистория https://credistory.ru '
+                                        'нажимаете кнопку ПРОВЕРИТЬ КРЕДИТНУЮ ИСТОРИЮ')
 
-        await call.message.answer_photo(foto_2, 'Выбираете последний загруженный отчет')
+        await call.message.answer_photo(all_photos_1[1], 'Выбираете последний загруженный отчет')
 
-        await call.message.answer_photo(foto_3, 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
-                                   reply_markup=keyboard_cancel)
+        await call.message.answer_photo(all_photos_1[2], 'Жмете СКАЧАТЬ PDF и отправляете его в эту заявку',
+                                        reply_markup=keyboard_cancel)
         await ApplyNow.photo_from_2_credit_history_site.set()
     except Exception as e:
         logger.error(e)
@@ -314,9 +317,12 @@ async def process_photo_credit_history_2(message: types.Message, state: FSMConte
 
 
 # добавить обработку кнопок "оправить заявку" и "редактировать заявку"
-keyboard_send = InlineKeyboardMarkup(row_width=1)
-keyboard_send.add(InlineKeyboardButton(text='Оправить заявку', callback_data='Оправить заявку'))
-keyboard_send.add(InlineKeyboardButton(text='Редактировать заявку', callback_data='Редактировать заявку'))
+keyboard_send = InlineKeyboardMarkup(row_width=2, inline_keyboard=[
+    [
+        InlineKeyboardButton(text="Оправить заявку", callback_data='Оправить заявку'),
+        InlineKeyboardButton(text="Редактировать заявку", callback_data='Редактировать заявку'),
+    ]
+])
 
 
 @dp.callback_query_handler(lambda c: c.data == 'continue_application_2', state='*')
@@ -347,9 +353,9 @@ async def continue_application(call: types.CallbackQuery, state: FSMContext):
                        photo_from_2_credit_history_site=photo_from_2_credit_history_site_str)
 
     await call.message.answer('Ура! Вы справились! Данные по вашей заявке успешно загружены! '
-                              'Осталось оправить или отредактировать заявку.\n\n✅ Выберите действие:',
+                              'Осталось оправить или отредактировать заявку.',
                               reply_markup=ReplyKeyboardRemove())
-    await call.message.answer('Выберите действие:', reply_markup=keyboard_send)
+    await call.message.answer('✅ Выберите действие:', reply_markup=keyboard_send)
 
 
 async def merge_proposals(proposal, proposal_2):
@@ -381,7 +387,7 @@ async def submit_application(call: types.CallbackQuery, state: FSMContext):
                               'обслуживания.\n\n'
                               '1. Распечатать договор\n'
                               '2. Подписать\n'
-                              '3. Отправить фото или скан в этого бота в разделе МОЙ ДОГОВОР \n'
+                              '3. Отправить фото или скан в этого бота в разделе "Договор" \n'
                               '\n меню пользователя /menu ')
     ref_link = await get_start_link(payload=call.from_user.id)
     await call.message.answer(f'Примите участие в партнерской программе:\n'

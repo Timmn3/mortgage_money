@@ -47,7 +47,8 @@ async def command_start(message: types.Message):
     ref_link = await get_start_link(payload=user_id)
     if user:
         if user.status == 'active':
-            await message.answer('Бот работает!')
+            pass
+            # await message.answer('Бот работает!')
         elif user.status == 'buned':
             await message.answer('Ты забанен')
     else:

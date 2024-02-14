@@ -1,10 +1,11 @@
 from filters import AdminsMessage, IsSubscriber
 from handlers.users.levels import set_levels
+from keyboards.cancel import keyboard_cancel
 from loader import dp
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Command
-
+import os
 from misc.save_excel import create_excel_file
 from utils.db_api import users_commands as commands
 from asyncio import sleep
@@ -23,6 +24,7 @@ from utils.db_api.users_commands import change_user_role, select_all_users_with_
     find_user_by_referral_value, count_users, save_count_levels, get_user_id_by_username, get_user_created_at
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
+
 class SendMessage(StatesGroup):
     send_mess = State()
     time = State()
@@ -38,6 +40,7 @@ class SendMessage(StatesGroup):
     status = State()
     username = State()
     username_mess = State()
+    service_agreement = State()
 
 
 @dp.message_handler(IsSubscriber(), text="/test")
@@ -61,10 +64,10 @@ async def req(message: types.Message):
                          f'/change_user_list - загрузить изменения пользователей в БД\n'
                          f'/unload_bid - выгрузить заявки \n'
                          f'/update_referrals - пересчитать рефералы пользователям\n'
-                         f'/ref_id - узнать сколько у юзера пользователей по id ')
-
-keyboard_cancel = ReplyKeyboardMarkup(resize_keyboard=True)
-keyboard_cancel.add(KeyboardButton('Отмена'))
+                         f'/ref_id - узнать сколько у юзера пользователей по id \n'
+                         f'/delete_user - удалить пользователя по id \n'
+                         f'/replace_service_agreement - заменить договор оказания услуг'
+                         )
 
 
 # команда /message отправить сообщения всем пользователям
@@ -524,3 +527,30 @@ async def send_bid(dpr: Dispatcher, file):
                 await dpr.bot.send_document(chat_id=admin, document=InputFile(document))
         except Exception as err:
             logger.exception(err)
+
+
+# /replace_service_agreement - заменить договор оказания услуг
+@dp.message_handler(AdminsMessage(), Command('replace_service_agreement'))
+async def replace_service_agreement(message: types.Message):
+    await message.answer(f'Загрузите новый договор оказания услуг:',
+                         reply_markup=keyboard_cancel)
+    await SendMessage.service_agreement.set()  # устанавливаем состояние
+
+
+# Отлавливаем состояние введенного сообщения
+@dp.message_handler(state=SendMessage.service_agreement,
+                    content_types=[types.ContentType.DOCUMENT, types.ContentType.TEXT])
+async def input_service_agreement(message: types.Message, state: FSMContext):
+    if message.content_type == 'document':
+        file_name = f'Договор оказания услуг.pdf'
+        # Сохраняем
+        file_path = os.path.join("admin_documents/договор оказания услуг", file_name)
+        await message.document.download(destination_file=file_path)
+        await message.answer('Новый договор успешно сохранен!')
+        await state.finish()
+    elif message.text.lower() == 'отмена':
+        await message.answer('Отменено', reply_markup=ReplyKeyboardRemove())
+        await state.finish()  # обязательно завершаем состояние
+
+    else:
+        await message.answer('Пожалуйста, загрузите документ:')
