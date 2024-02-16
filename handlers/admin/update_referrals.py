@@ -6,7 +6,7 @@ from aiogram import types
 from aiogram.dispatcher.filters import Command
 
 from utils.db_api.users_commands import reset_all_user_data, save_count_levels, \
-    get_user_id_who_invited_dict
+    get_users_id_who_invited_dict
 
 
 # команда /update_referrals
@@ -14,8 +14,7 @@ from utils.db_api.users_commands import reset_all_user_data, save_count_levels, 
 async def send_message(message: types.Message):
     await message.answer('Подождите...')
     await reset_all_user_data()
-    dict_users = await get_user_id_who_invited_dict()
-
+    dict_users = await get_users_id_who_invited_dict()
     for user in dict_users:
         await calculate_levels(dict_users, user)
 

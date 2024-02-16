@@ -2,16 +2,22 @@ from aiogram import types
 from aiogram.utils.deep_linking import get_start_link
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from filters import IsSubscriber
+from handlers.admin.update_referrals import find_keys_by_value, calculate_levels
 from keyboards.cancel import keyboard_cancel
 from loader import dp
-from utils.db_api.users_commands import get_user_referrals, print_user_levels
+from utils.db_api.users_commands import get_user_referrals, print_user_levels, reset_user_data_by_id, save_count_levels, \
+    get_user_id_who_invited_dict
 from aiogram.dispatcher import FSMContext
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+
 
 @dp.message_handler(text="/ref")  # создаем хэндлер
 async def command_ref(message: types.Message):  # создаем асинхронную функцию
     try:
         ref_link = await get_start_link(payload=message.from_user.id)
+        await reset_user_data_by_id(message.from_user.id)
+        dict_user = await get_user_id_who_invited_dict(message.from_user.id)
+        await calculate_levels(dict_user, message.from_user.id)
         ref = await print_user_levels(message.from_user.id)
 
         await message.answer(f'Привет {message.from_user.first_name}\n'

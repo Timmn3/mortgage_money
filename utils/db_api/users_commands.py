@@ -541,6 +541,24 @@ async def reset_all_user_data():
         logger.error(f"Error resetting user data: {e}")
 
 
+async def reset_user_data_by_id(user_id: int):
+    try:
+        # Fetch the user from the database by their ID
+        user = await Users.query.where(Users.user_id == user_id).gino.first()
+
+        if user:
+            # Update the specified fields for the user
+            await user.update(
+                level='{"1":0,"2":0, "3":0,"4":0,"5":0}',
+                bonus_1=0
+            ).apply()
+        else:
+            print(f"Пользователь с ID {user_id} не найден")
+
+    except Exception as e:
+        logger.error(f"Ошибка при сбросе данных пользователя: {e}")
+
+
 async def count_users_by_who_invited(who_invited_value):
     try:
         # Use a database query to count occurrences of who_invited_value in the database
@@ -599,7 +617,7 @@ async def find_user_ids_by_nik(inviter_username: str):
         return []
 
 
-async def get_user_id_who_invited_dict():
+async def get_users_id_who_invited_dict():
     try:
         # Fetch all users from the database
         users = await Users.query.gino.all()
@@ -611,6 +629,24 @@ async def get_user_id_who_invited_dict():
 
     except Exception as e:
         print(f"Error getting user_id who_invited dictionary: {e}")
+        return {}
+
+
+async def get_user_id_who_invited_dict(user_id):
+    try:
+        # Fetch the user from the database by their ID
+        user = await Users.query.where(Users.user_id == user_id).gino.first()
+
+        if user:
+            # Create a dictionary with user_id as the key and who_invited as the value
+            user_id_who_invited_dict = {int(user.user_id): int(user.who_invited) if user.who_invited.isdigit() else None}
+            return user_id_who_invited_dict
+        else:
+            print(f"Пользователь с ID {user_id} не найден")
+            return {}
+
+    except Exception as e:
+        print(f"Ошибка при получении словаря user_id who_invited: {e}")
         return {}
 
 
